@@ -1,0 +1,101 @@
+sniffer.py – Full Code with Explanation
+# Importing required libraries
+from scapy.all import sniff, wrpcap  # Scapy for capturing & saving packets
+import os  # OS library to manage folders
+
+# ✅ Create folder to save captured packets if it doesn't exist
+if not os.path.exists("pcap_files"):
+    os.mkdir("pcap_files")
+
+# List to store captured packets temporarily
+captured_packets = []
+
+# Callback function for each captured packet
+def packet_callback(packet):
+    captured_packets.append(packet)  # Add packet to list
+
+    # Check if packet has an IP layer
+    if packet.haslayer("IP"):
+        ip_layer = packet["IP"]
+        proto = ip_layer.proto  # Protocol number (6=TCP, 17=UDP, etc.)
+        print(f"[+] {ip_layer.src} --> {ip_layer.dst} | Protocol: {proto}")
+
+        # Check for TCP payload
+        if packet.haslayer("TCP"):
+            print("   TCP Payload:", bytes(packet["TCP"].payload))
+        # Check for UDP payload
+        elif packet.haslayer("UDP"):
+            print("   UDP Payload:", bytes(packet["UDP"].payload))
+        # Check for ARP packets
+        elif packet.haslayer("ARP"):
+            print("   ARP Info:", packet.summary())
+
+# Get user input for packet filter
+packet_filter = input("Enter filter (tcp/udp/http/none): ").lower()
+filter_str = None
+if packet_filter == "tcp":
+    filter_str = "tcp"  # Capture only TCP packets
+elif packet_filter == "udp":
+    filter_str = "udp"  # Capture only UDP packets
+elif packet_filter == "http":
+    filter_str = "tcp port 80"  # Capture HTTP traffic
+# If "none", capture all packets
+
+print("🚀 Starting Network Sniffer... Press CTRL+C to stop.")
+
+try:
+    # Start sniffing packets with the callback function
+    sniff(prn=packet_callback, filter=filter_str, store=False)
+except KeyboardInterrupt:
+    # Save captured packets to a pcap file when user presses CTRL+C
+    wrpcap("pcap_files/captured_packets.pcap", captured_packets)
+    print(f"💾 Saved {len(captured_packets)} packets to pcap_files/captured_packets.pcap")
+
+2️⃣ Line-by-Line Explanation
+Code Section	Purpose
+from scapy.all import sniff, wrpcap	Import Scapy functions for packet capture and saving .pcap files
+import os	Allows creating folders and checking if paths exist
+if not os.path.exists("pcap_files"):	Ensures a folder exists to save captured packets
+captured_packets = []	Temporary list to store packets in memory
+def packet_callback(packet):	Function executed for each packet captured
+captured_packets.append(packet)	Save the packet in the list
+if packet.haslayer("IP"):	Check if packet contains an IP layer (all TCP/UDP traffic will)
+ip_layer = packet["IP"]	Access IP layer information
+proto = ip_layer.proto	Get protocol number (TCP=6, UDP=17, etc.)
+`print(f"[+] {ip_layer.src} --> {ip_layer.dst}	Protocol: {proto}")`
+if packet.haslayer("TCP"):	Check for TCP payload and print it
+elif packet.haslayer("UDP"):	Check for UDP payload and print it
+elif packet.haslayer("ARP"):	Detect ARP packets and print summary
+packet_filter = input(...)	Ask user which type of packets to capture
+filter_str = "tcp"/"udp"/"tcp port 80"	Convert user choice to a BPF filter for sniffing
+sniff(prn=packet_callback, filter=filter_str, store=False)	Start live packet capture
+wrpcap("pcap_files/captured_packets.pcap", captured_packets)	Save captured packets to .pcap file for Wireshark
+3️⃣ requirements.txt
+scapy==2.6.1
+
+
+Explains: Only Scapy is required as external dependency. Python 3 is assumed.
+
+4️⃣ How Code Works Together
+
+Folder Setup – Ensures a place for .pcap files
+
+Packet Capture – sniff() grabs packets from network interface
+
+Packet Analysis – packet_callback() extracts protocol info and payload
+
+Filtering – User can choose which traffic to capture (TCP, UDP, HTTP, or all)
+
+Saving Packets – wrpcap() writes all captured packets to a .pcap file
+
+Optional Analysis – Open .pcap in Wireshark for deeper inspection
+
+5️⃣ Optional Enhancements (Intermediate Level)
+
+Print live source/destination MAC address
+
+Extract HTTP headers or DNS queries
+
+Add timestamp for each packet
+
+Show packet length and flags for TCP packets
